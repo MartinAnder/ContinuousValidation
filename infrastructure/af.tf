@@ -6,8 +6,8 @@ resource "azurerm_resource_group" "af-rg" {
 resource "random_string" "af-name-noise" {
   length  = 5
   special = false
-  lower   = false
-  upper   = true
+  lower   = true
+  upper   = false
   number  = true
 }
 
