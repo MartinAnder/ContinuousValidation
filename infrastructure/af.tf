@@ -3,8 +3,16 @@ resource "azurerm_resource_group" "af-rg" {
   location = "North europe"
 }
 
+resource "random_string" "af-name-noise" {
+  length  = 5
+  special = false
+  lower   = false
+  upper   = true
+  number  = true
+}
+
 resource "azurerm_storage_account" "af-sa" {
-  name                     = "examplestorageaccount"
+  name                     = "afstorageaccount${random_string.af-name-noise.result}"
   resource_group_name      = azurerm_resource_group.af-rg.name
   location                 = azurerm_resource_group.af-rg.location
   account_tier             = "Standard"
@@ -20,14 +28,6 @@ resource "azurerm_app_service_plan" "af-service-plan" {
     tier = "Dynamic"
     size = "Y1"
   }
-}
-
-resource "random_string" "af-name-noise" {
-  length  = 5
-  special = false
-  lower   = false
-  upper   = true
-  number  = true
 }
 
 resource "azurerm_function_app" "af" {
