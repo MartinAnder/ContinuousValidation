@@ -63,7 +63,9 @@ jobs:
         id: plan
         if: github.event_name == 'pull_request'
         working-directory: ${{ github.workspace }}/infrastructure
-        run: terraform plan -no-color
+        run: |
+          terraform plan -no-color \
+            -var 'pr-number=${{ github.event.issue.number }}'
         continue-on-error: true
       
       - name: Comment PR
@@ -103,7 +105,7 @@ jobs:
         working-directory: ${{ github.workspace }}/infrastructure
         run: |
           terraform apply -auto-approve \
-            -var 'pr-number=${{github.event.issue.number}}'
+            -var 'pr-number=${{ github.event.issue.number }}'
       
       # This aint ugly at all:
       # https://github.com/actions/toolkit/issues/403
