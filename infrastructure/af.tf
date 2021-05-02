@@ -1,8 +1,3 @@
-resource "azurerm_resource_group" "af-rg" {
-  name     = "example-rg"
-  location = "North europe"
-}
-
 resource "random_string" "af-name-noise" {
   length  = 5
   special = false
@@ -10,6 +5,12 @@ resource "random_string" "af-name-noise" {
   upper   = false
   number  = true
 }
+
+resource "azurerm_resource_group" "af-rg" {
+  name     = "example-rg-${random_string.af-name-noise.result}"
+  location = "North europe"
+}
+
 
 resource "azurerm_storage_account" "af-sa" {
   name                     = "afstorageaccount${random_string.af-name-noise.result}"
@@ -20,7 +21,7 @@ resource "azurerm_storage_account" "af-sa" {
 }
 
 resource "azurerm_app_service_plan" "af-service-plan" {
-  name                = "example-service-plan"
+  name                = "example-service-plan-${random_string.af-name-noise.result}"
   resource_group_name = azurerm_resource_group.af-rg.name
   location            = azurerm_resource_group.af-rg.location
   kind                = "FunctionApp"
@@ -41,10 +42,6 @@ resource "azurerm_function_app" "af" {
 
   https_only = true
 
-  site_config {
-    always_on = true
-  }
-
   app_settings = {
     FUNCTIONS_WORKER_RUNTIME = "dotnet"
     FUNCTION_APP_EDIT_MODE   = "readonly"
@@ -53,7 +50,7 @@ resource "azurerm_function_app" "af" {
 
 
 resource "azuread_application" "af-application" {
-  name                       = "af-application"
+  name                       = "af-application-${random_string.af-name-noise.result}"
   available_to_other_tenants = false
 }
 

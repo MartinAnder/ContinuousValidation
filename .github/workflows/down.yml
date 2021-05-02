@@ -37,5 +37,7 @@ jobs:
       - name: Terraform Destroy
         id: validate
         working-directory: ${{ github.workspace }}/infrastructure
-        run: terraform destroy -auto-approve
+        run: |
+          terraform destroy -auto-approve \
+            -var 'pr-number=${{ github.event.number }}'
     
