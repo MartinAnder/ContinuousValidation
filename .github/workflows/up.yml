@@ -26,22 +26,14 @@ jobs:
       ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
     
     steps:
-      
       - name: Checkout code
         uses: actions/checkout@v2
-      
+  
       - name: Install .NET
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: '5.0.x'
-      
-      - name: Set variables
-        id: variables
-        run: |
-          raw=$(git branch -r --contains ${{ github.ref }})
-          branch=${raw##*/}
-          echo "::set-output name=BRANCH::$branch"
-      
+  
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
         with:
@@ -60,7 +52,7 @@ jobs:
       - name: Terraform Init
         id: init
         working-directory: ${{ github.workspace }}/infrastructure
-        run: terraform init -backend-config "key=${{ steps.variables.outputs.BRANCH }}"
+        run: terraform init -backend-config "key=${{ github.event.pull_request.head.ref }}"
       
       - name: Terraform Validate
         id: validate
