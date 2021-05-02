@@ -26,15 +26,17 @@ jobs:
       ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
     
     steps:
-      
+  
+      - uses: hmarr/debug-action@v2
+  
       - name: Checkout code
         uses: actions/checkout@v2
-      
+  
       - name: Install .NET
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: '5.0.x'
-      
+  
       - name: Set variables
         id: variables
         run: |
