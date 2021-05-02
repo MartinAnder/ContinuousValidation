@@ -1,0 +1,55 @@
+name: Down
+
+on:
+  pull_request:
+    branches-ignore:
+      - master
+    types:
+      - closed
+      - locked
+
+jobs:
+  
+  down:
+    name: Destroy
+    runs-on: ubuntu-latest
+    
+    steps:
+      
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Set variables
+        id: variables
+        run: |
+          raw=$(git branch -r --contains ${{ github.ref }})
+          branch=${raw##*/}
+          echo "BRANCH=$branch" >> $GITHUB_ENV
+          echo "STACK_NAME_FULL=${{ env.STACK_NAME_PREFIX }}$branch" >> $GITHUB_ENV
+          echo "::set-output name=BRANCH::$branch"
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_wrapper: false
+      
+      - name: Terraform Init
+        id: init
+        working-directory: ${{ github.workspace }}/infrastructure
+        run: terraform init -backend-config "key=${{ steps.variables.outputs.BRANCH }}"
+        env:
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      
+      - name: Terraform Destroy
+        id: validate
+        working-directory: ${{ github.workspace }}/infrastructure
+        run: terraform destroy -auto-approve
+        env:
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+    

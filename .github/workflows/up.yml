@@ -1,0 +1,141 @@
+name: Up
+
+on:
+  #  push:
+  #    branches:
+  #      - master
+  
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - unlocked
+
+jobs:
+  
+  
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    
+    env:
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+    
+    steps:
+      
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Install .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '5.0.x'
+      
+      - name: Set variables
+        id: variables
+        run: |
+          raw=$(git branch -r --contains ${{ github.ref }})
+          branch=${raw##*/}
+          echo "::set-output name=BRANCH::$branch"
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_wrapper: false
+      
+      - name: Terraform Format
+        id: fmt
+        working-directory: ${{ github.workspace }}/infrastructure
+        run: terraform fmt -check
+      
+      #      - name: Azure Login
+      #        uses: azure/login@v1
+      #        with:
+      #          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Terraform Init
+        id: init
+        working-directory: ${{ github.workspace }}/infrastructure
+        run: terraform init -backend-config "key=${{ steps.variables.outputs.BRANCH }}"
+      
+      - name: Terraform Validate
+        id: validate
+        working-directory: ${{ github.workspace }}/infrastructure
+        run: terraform validate -no-color
+      
+      - name: Terraform Plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        working-directory: ${{ github.workspace }}/infrastructure
+        run: terraform plan -no-color
+        continue-on-error: true
+      
+      - name: Comment PR
+        uses: actions/github-script@0.9.0
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖${{ steps.validate.outputs.stdout }}
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+          
+            <details><summary>Show Plan</summary>
+          
+            \`\`\`${process.env.PLAN}\`\`\`
+          
+            </details>
+          
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
+          
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+      
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+      
+      - name: Terraform Apply
+        id: apply
+        working-directory: ${{ github.workspace }}/infrastructure
+        run: |
+          terraform apply -auto-approve \
+            -var 'pr-number=${{github.event.issue.number}}'
+      
+      # This aint ugly at all:
+      # https://github.com/actions/toolkit/issues/403
+      - name: Terraform get outputs
+        id: terraform-outputs
+        working-directory: ${{ github.workspace }}/infrastructure
+        run: |
+          echo "::set-output name=AZURE_RBAC_CREDENTIALS::$(terraform output -raw sdk-auth)"
+          echo "::set-output name=AZURE_FUNCTIONAPP_NAME::$(terraform output -raw azure-function-name)"
+      
+      
+      - name: 'Login via Azure CLI'
+        uses: azure/login@v1
+        with:
+          creds: ${{ steps.terraform-outputs.outputs.AZURE_RBAC_CREDENTIALS }}
+      
+      - name: 'Dotnet build'
+        run: dotnet build --configuration Release --output ./publish-output
+      
+      - name: 'Deploy Azure Function'
+        uses: Azure/functions-action@v1
+        id: fa
+        with:
+          app-name: ${{ steps.terraform-outputs.outputs.AZURE_FUNCTIONAPP_NAME }}
+          package: ./publish-output
+          
+          
