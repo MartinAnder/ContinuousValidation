@@ -7,13 +7,13 @@ resource "random_string" "af-name-noise" {
 }
 
 resource "azurerm_resource_group" "af-rg" {
-  name     = "example-rg-${random_string.af-name-noise.result}"
+  name     = "continuous-validation-rg-${random_string.af-name-noise.result}"
   location = "North europe"
 }
 
 
 resource "azurerm_storage_account" "af-sa" {
-  name                     = "afstorageaccount${random_string.af-name-noise.result}"
+  name                     = "cvsa{random_string.af-name-noise.result}"
   resource_group_name      = azurerm_resource_group.af-rg.name
   location                 = azurerm_resource_group.af-rg.location
   account_tier             = "Standard"
@@ -21,7 +21,7 @@ resource "azurerm_storage_account" "af-sa" {
 }
 
 resource "azurerm_app_service_plan" "af-service-plan" {
-  name                = "example-service-plan-${random_string.af-name-noise.result}"
+  name                = "continuous-validation-service-plan-${random_string.af-name-noise.result}"
   resource_group_name = azurerm_resource_group.af-rg.name
   location            = azurerm_resource_group.af-rg.location
   kind                = "FunctionApp"
@@ -32,7 +32,7 @@ resource "azurerm_app_service_plan" "af-service-plan" {
 }
 
 resource "azurerm_function_app" "af" {
-  name                       = "pr-${var.pr-number}-hello-medium-${random_string.af-name-noise.result}"
+  name                       = "pr-${var.pr-number}-continuous-validation-${random_string.af-name-noise.result}"
   location                   = azurerm_resource_group.af-rg.location
   resource_group_name        = azurerm_resource_group.af-rg.name
   app_service_plan_id        = azurerm_app_service_plan.af-service-plan.id
@@ -43,14 +43,16 @@ resource "azurerm_function_app" "af" {
   https_only = true
 
   app_settings = {
-    FUNCTIONS_WORKER_RUNTIME = "dotnet"
-    FUNCTION_APP_EDIT_MODE   = "readonly"
+    FUNCTIONS_WORKER_RUNTIME        = "dotnet"
+    FUNCTION_APP_EDIT_MODE          = "readonly"
+    WEBSITE_ENABLE_SYNC_UPDATE_SITE = "true"
+    WEBSITE_RUN_FROM_PACKAGE        = "1"
   }
 }
 
 
 resource "azuread_application" "af-application" {
-  name                       = "af-application-${random_string.af-name-noise.result}"
+  name                       = "continuous-validation-af-application-${random_string.af-name-noise.result}"
   available_to_other_tenants = false
 }
 
