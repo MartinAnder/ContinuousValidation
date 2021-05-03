@@ -32,12 +32,30 @@ jobs:
       - name: Terraform Init
         id: init
         working-directory: ${{ github.workspace }}/infrastructure
-        run: terraform init -backend-config "key=${{ github.event.pull_request.head.ref }}"
-      
+        run: |
+          terraform init \
+            -backend-config "key=PR-${{ github.event.pull_request.number }}" \
+            -backend-config "resource_group_name=${{ secrets.TFSTATE_RG }}" \
+            -backend-config "storage_account_name=${{ secrets.TFSTATE_SA_NAME }}" \
+            -backend-config "container_name=${{ secrets.TFSTATE_CONTAINER_NAME }}"
+
       - name: Terraform Destroy
         id: validate
         working-directory: ${{ github.workspace }}/infrastructure
         run: |
           terraform destroy -auto-approve \
-            -var 'pr-number=${{ github.event.number }}'
+            -var 'pr-number=${{ github.event.pull_request.number }}'
+
+      - name: Comment PR
+        uses: actions/github-script@0.9.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Feature environment destroyed.`;
     
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
