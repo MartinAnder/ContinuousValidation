@@ -13,7 +13,7 @@ resource "azurerm_resource_group" "af-rg" {
 
 
 resource "azurerm_storage_account" "af-sa" {
-  name                     = "cvsa{random_string.af-name-noise.result}"
+  name                     = "cvsa${random_string.af-name-noise.result}"
   resource_group_name      = azurerm_resource_group.af-rg.name
   location                 = azurerm_resource_group.af-rg.location
   account_tier             = "Standard"
