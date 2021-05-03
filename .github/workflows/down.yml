@@ -2,8 +2,8 @@ name: Down
 
 on:
   pull_request:
-    branches-ignore:
-      - master
+#    branches-ignore:
+    #      - master
     types:
       - closed
       - locked
