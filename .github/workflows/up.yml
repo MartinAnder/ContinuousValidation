@@ -178,7 +178,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const output = `#### Feature environment base URL:
+            const output = `#### Feature environment URL:
             https://${{ steps.terraform-outputs.outputs.AZURE_FUNCTIONAPP_NAME }}.azurewebsites.net/api/hello-medium`;
       
             github.issues.createComment({
