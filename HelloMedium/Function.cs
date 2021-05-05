@@ -13,7 +13,7 @@ namespace HelloMedium
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")]
             HttpRequest req)
         {
-            return new OkObjectResult("Hello Medium!");
+            return new OkObjectResult("Hello Medium from a feature environment 👀!");
         }
     }
 }
